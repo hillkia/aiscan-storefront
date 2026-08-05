@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ai-opportunity-scan
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # diisi manual di dashboard Render (rahasia)
+      - key: GUMROAD_PRODUCT_ID
+        sync: false
+      - key: GUMROAD_URL
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-latest
+      - key: ORDER_PER_HOUR
+        value: "5"

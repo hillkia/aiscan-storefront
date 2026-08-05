@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Opportunity Scan — see where the money is moving</title>
+<style>
+  :root{--bg:#0a0604;--panel:#150c06;--edge:#3a2412;--glow:#ff7a1a;--glow2:#ffb46b;--text:#f3e7da;--muted:#a68b73}
+  *{box-sizing:border-box;margin:0}
+  body{background:radial-gradient(900px 500px at 50% -5%,#2a1408 0%,var(--bg) 60%);color:var(--text);
+    font-family:-apple-system,"Segoe UI",Inter,Roboto,system-ui,sans-serif;line-height:1.5;min-height:100vh}
+  .wrap{max-width:640px;margin:0 auto;padding:48px 22px 60px}
+  .eyebrow{color:var(--glow2);font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+  h1{font-size:clamp(30px,6vw,44px);line-height:1.1;margin:12px 0 14px;letter-spacing:-.5px}
+  h1 span{color:var(--glow)}
+  .sub{color:var(--muted);font-size:16px;max-width:520px}
+  .radar{width:130px;height:130px;margin:26px auto 6px;display:block;opacity:.9}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:22px;margin-top:30px}
+  ul{list-style:none;margin:8px 0 0;padding:0}
+  li{display:flex;gap:10px;padding:7px 0;font-size:15px}
+  li b{color:var(--glow2)}
+  .price{display:flex;align-items:baseline;gap:8px;margin:6px 0 16px}
+  .price .big{font-size:38px;font-weight:800;color:var(--glow2)}
+  .price .old{color:var(--muted);text-decoration:line-through;font-size:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin:14px 0 5px;letter-spacing:.5px}
+  input{width:100%;background:#0a0604;border:1px solid var(--edge);border-radius:12px;color:var(--text);
+    padding:13px 15px;font-size:15px;outline:none}
+  input:focus{border-color:var(--glow)}
+  .btn{width:100%;margin-top:18px;background:linear-gradient(135deg,#ff7a1a,#ffb46b);color:#200e03;border:none;
+    border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer}
+  .btn:disabled{opacity:.6}
+  .buy{display:inline-block;margin-top:8px;color:var(--glow2);font-size:13px;text-decoration:none;border-bottom:1px dashed}
+  .msg{margin-top:12px;font-size:14px;min-height:18px}
+  .msg.err{color:#ff8f9f}.msg.wait{color:var(--muted)}
+  .spin{display:inline-block;width:15px;height:15px;border-radius:50%;border:2px solid #ff7a1a44;border-top-color:var(--glow);animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:26px;text-align:center;line-height:1.6}
+  .trust{display:flex;gap:18px;justify-content:center;color:var(--muted);font-size:12px;margin-top:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">🛰️ AI Opportunity Scan</div>
+  <h1>See <span>where the money</span> is moving — in any industry.</h1>
+  <p class="sub">A McKinsey-style opportunity radar for your niche in 60 seconds. 7 ranked plays, each with the market signal and a concrete way in. Powered by AI, delivered as a shareable report.</p>
+
+  <svg class="radar" viewBox="0 0 120 120"><g fill="none" stroke="#ff7a1a" stroke-opacity=".5">
+    <circle cx="60" cy="60" r="52"/><circle cx="60" cy="60" r="36"/><circle cx="60" cy="60" r="20"/>
+    <line x1="60" y1="8" x2="60" y2="112"/><line x1="8" y1="60" x2="112" y2="60"/></g>
+    <circle cx="60" cy="24" r="6" fill="#ff7a1a"/><circle cx="90" cy="72" r="5" fill="#ffb46b"/>
+    <circle cx="36" cy="82" r="4" fill="#ff8c2b"/><circle cx="60" cy="60" r="7" fill="#ffedd8"/></svg>
+
+  <div class="card">
+    <div class="price"><span class="big">$19</span><span class="old">$79</span><span style="color:var(--muted);font-size:13px">one-time</span></div>
+    <ul>
+      <li>🎯 <span><b>7 ranked opportunities</b> in your industry, scored 0–100</span></li>
+      <li>📈 <span>The <b>“why now”</b> signal behind each one</span></li>
+      <li>🚪 <span>A <b>specific entry play</b> you can act on this week</span></li>
+      <li>📄 <span>Clean report you can <b>save as PDF</b> & share</span></li>
+    </ul>
+
+    <label>Your industry or idea</label>
+    <input id="ind" placeholder="e.g. AI tools for real-estate agents">
+    <label>Gumroad license key <span style="opacity:.6">(from your purchase)</span></label>
+    <input id="lic" placeholder="paste license key">
+    <button class="btn" id="go">Generate my scan →</button>
+    <a class="buy" id="buyLink" href="#" target="_blank">Don't have a key? Buy the scan →</a>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="trust"><span>🔒 Secure</span><span>⚡ 60-second delivery</span><span>💸 Instant download</span></div>
+  <div class="foot">AI-generated strategic guidance from reasoning + live signals — sharp and actionable, but not licensed research data. Decisions remain yours.</div>
+</div>
+<script>
+// Link beli & status lisensi datang dari server (env GUMROAD_URL / GUMROAD_PRODUCT_ID).
+fetch('/api/config').then(r=>r.json()).then(c=>{
+  const a=document.getElementById('buyLink');
+  if(c.buy_url){ a.href=c.buy_url; }
+  else { a.href='#'; a.textContent='Purchase link coming soon'; a.style.opacity='.55'; }
+  if(!c.licensed){  // belum kunci lisensi → jangan minta key yg belum bisa dipakai
+    const lic=document.getElementById('lic');
+    if(lic) lic.placeholder='(not required yet)';
+  }
+}).catch(()=>{});
+async function order(){
+  const industry=document.getElementById('ind').value.trim();
+  const license=document.getElementById('lic').value.trim();
+  const msg=document.getElementById('msg'), btn=document.getElementById('go');
+  if(!industry){ msg.className='msg err'; msg.textContent='Enter your industry first.'; return; }
+  btn.disabled=true; msg.className='msg wait'; msg.innerHTML='<span class="spin"></span>Scanning your market… (up to 60s)';
+  try{
+    const d=await (await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({industry,license})})).json();
+    if(d.ok && d.report_url){
+      // Simpan salinan di browser: kalau server restart (hosting gratis suka tidur),
+      // laporan yang sudah dibayar tetap bisa dibuka.
+      try{ sessionStorage.setItem('scan:'+d.id, JSON.stringify(d.report)); }catch(_){}
+      location.href=d.report_url; return;
+    }
+    msg.className='msg err'; msg.textContent=d.message||d.error||'Something went wrong.'; btn.disabled=false;
+  }catch(e){ msg.className='msg err'; msg.textContent='Server unreachable.'; btn.disabled=false; }
+}
+document.getElementById('go').onclick=order;
+document.getElementById('ind').addEventListener('keydown',e=>{if(e.key==='Enter')order();});
+</script>
+</body>
+</html>
