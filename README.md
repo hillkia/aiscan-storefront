@@ -1,4 +1,15 @@
-# 🛰️ Etalase AI Opportunity Scan — siap deploy ke Render
+---
+title: AI Opportunity Scan
+emoji: 🛰️
+colorFrom: orange
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+short_description: 7 ranked opportunities in your industry, in 60 seconds.
+---
+
+# 🛰️ Etalase AI Opportunity Scan
 
 Toko online yang **berdiri sendiri**. Laptop boleh mati.
 
@@ -14,29 +25,24 @@ Semua rute selain jualan otomatis 404 (sudah diuji).
 | `/api/config` | link beli + status lisensi |
 | `/api/order` | verifikasi lisensi → panggil Gemini → laporan |
 | `/api/report/{id}` | ambil ulang laporan |
-| `/healthz` | cek hidup (dipakai Render) |
+| `/healthz` | cek hidup |
 
-## Deploy ke Render (sekali saja, ~10 menit)
+## Jalan di Hugging Face Spaces (gratis, tanpa kartu)
 
-1. **Naikkan folder ini ke GitHub** (repo boleh private).
-2. Buka **render.com** → *New* → *Web Service* → sambungkan repo-nya.
-3. Render otomatis membaca `render.yaml`. Kalau diminta manual:
-   - Runtime **Python**
-   - Build: `pip install -r requirements.txt`
-   - Start: `uvicorn app:app --host 0.0.0.0 --port $PORT`
-   - Health check: `/healthz`
-4. **Environment** → isi:
+Space ini pakai **Docker** (lihat `Dockerfile`), mendengar di port **7860**.
 
-| Key | Isi | Wajib? |
+Rahasia diisi di **Settings → Variables and secrets** milik Space:
+
+| Nama | Isi | Wajib? |
 |---|---|---|
-| `GEMINI_API_KEY` | key AI Studio (`AIzaSy…`, 39 karakter) | **wajib** |
+| `GEMINI_API_KEY` | key AI Studio (`AIzaSy…`, 39 karakter) | **wajib** — simpan sebagai *Secret* |
 | `GUMROAD_PRODUCT_ID` | product ID Gumroad | **sangat disarankan** |
 | `GUMROAD_URL` | link produk Gumroad | perlu, biar tombol beli hidup |
 | `GEMINI_MODEL` | `gemini-flash-latest` | opsional |
 | `ORDER_PER_HOUR` | `5` | opsional |
 
-5. Deploy. Alamatnya jadi `https://<nama>.onrender.com`.
-6. Balik ke Gumroad → produk → **Redirect / Receipt** → tempel alamat itu.
+Setelah Space hidup, alamatnya `https://<user>-<space>.hf.space` — tempel alamat itu
+ke isi produk Gumroad menggantikan `[SCAN_URL_HERE]`.
 
 ## ⚠️ Yang wajib diingat
 
@@ -49,9 +55,9 @@ menyebar link.
 [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 Yang berawalan `AQ.Ab8…` itu token sementara — akan ditolak 403.
 
-**Paket gratis Render tidur setelah 15 menit nganggur** → pengunjung pertama
-menunggu ~50 detik. Cukup untuk validasi & pembeli pertama. Kalau trafik sudah
-nyata, naik ke Starter $7/bulan.
+**Space gratis tidur setelah ~48 jam nganggur** → pengunjung pertama menunggu
+beberapa puluh detik sementara container bangun. Cukup untuk validasi & pembeli
+pertama.
 
 ## Laporan tidak disimpan di disk — itu disengaja
 Hosting gratis menghapus disk tiap restart. Jadi laporan ditaruh di memori
