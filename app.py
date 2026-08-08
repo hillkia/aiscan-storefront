@@ -31,7 +31,7 @@ from pathlib import Path
 
 import requests
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 WEB = Path(__file__).resolve().parent / "web"
 
@@ -194,6 +194,28 @@ def index():
 @app.get("/r/{sid}")
 def report_page(sid: str):
     return FileResponse(WEB / "report.html", headers={"Cache-Control": "no-cache"})
+
+
+SITE = os.environ.get("SITE_URL", "https://aiscan-storefront.vercel.app").rstrip("/")
+
+
+@app.get("/robots.txt")
+def robots():
+    """Beri tahu mesin pencari: halaman jual boleh dibaca, laporan pembeli jangan."""
+    body = (f"User-agent: *\nAllow: /$\nDisallow: /r/\nDisallow: /api/\n\n"
+            f"Sitemap: {SITE}/sitemap.xml\n")
+    return Response(body, media_type="text/plain")
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    """Peta situs — cuma satu halaman, dan memang itu yang perlu ditemukan."""
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f'  <url><loc>{SITE}/</loc><changefreq>weekly</changefreq>'
+            '<priority>1.0</priority></url>\n'
+            '</urlset>\n')
+    return Response(body, media_type="application/xml")
 
 
 @app.get("/healthz")
