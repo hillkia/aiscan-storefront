@@ -35,10 +35,13 @@ from fastapi.responses import FileResponse, JSONResponse
 
 WEB = Path(__file__).resolve().parent / "web"
 
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# Terima beberapa nama: pemilik sempat menamainya "gemini" di Vercel.
+GEMINI_KEY = (os.environ.get("GEMINI_API_KEY")
+              or os.environ.get("gemini")
+              or os.environ.get("GEMINI_KEY") or "").strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip()
-GUMROAD_PRODUCT_ID = os.environ.get("GUMROAD_PRODUCT_ID", "").strip()
-GUMROAD_URL = os.environ.get("GUMROAD_URL", "").strip()
+GUMROAD_PRODUCT_ID = os.environ.get("GUMROAD_PRODUCT_ID", "1R1k0nEz7zSmriLHBHp3FA==").strip()
+GUMROAD_URL = os.environ.get("GUMROAD_URL", "https://hillkia.gumroad.com/l/aiscan").strip()
 ORDER_PER_HOUR = int(os.environ.get("ORDER_PER_HOUR", "5"))
 
 REPORT_TTL = 60 * 60 * 24 * 3      # 3 hari cukup; pembeli sudah unduh PDF-nya
