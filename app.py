@@ -40,6 +40,15 @@ GEMINI_KEY = (os.environ.get("GEMINI_API_KEY")
               or os.environ.get("gemini")
               or os.environ.get("GEMINI_KEY") or "").strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip()
+
+# Cadangan. Kuota gratis Gemini pernah habis di tengah hari (429), dan
+# pembeli yang sudah bayar $19 lalu dapat pesan galat itu kerugian yang
+# tak perlu. Kalau GROQ_API_KEY dipasang, dia mengambil alih diam-diam.
+GROQ_KEY = (os.environ.get("GROQ_API_KEY") or "").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b").strip()
+# Tier gratis Groq membatasi token PER PERMINTAAN. 8192 ditolak 413
+# "Request too large"; 4000 lolos dan tetap menghasilkan 7 sektor penuh.
+GROQ_MAX_TOKENS = int(os.environ.get("GROQ_MAX_TOKENS", "4000"))
 GUMROAD_PRODUCT_ID = os.environ.get("GUMROAD_PRODUCT_ID", "1R1k0nEz7zSmriLHBHp3FA==").strip()
 GUMROAD_URL = os.environ.get("GUMROAD_URL", "https://hillkia.gumroad.com/l/aiscan").strip()
 ORDER_PER_HOUR = int(os.environ.get("ORDER_PER_HOUR", "5"))
@@ -159,30 +168,75 @@ Return ONLY valid JSON, no prose, in exactly this shape:
 Exactly 7 items in "sectors", ordered by score descending."""
 
 
-def _generate(industry: str) -> tuple[dict | None, str]:
-    if not GEMINI_KEY:
-        return None, "Server is missing its AI key. The owner needs to set GEMINI_API_KEY."
+def _lewat_gemini(prompt: str) -> tuple[str | None, str]:
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
            f"{GEMINI_MODEL}:generateContent")
-    body = {"contents": [{"parts": [{"text": PROMPT.format(industry=industry)}]}],
+    body = {"contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.7, "maxOutputTokens": 8192}}
     try:
         r = requests.post(url, json=body, headers={"x-goog-api-key": GEMINI_KEY}, timeout=170)
     except requests.RequestException as e:
-        return None, f"Could not reach the AI service ({type(e).__name__}). Try again."
+        return None, f"unreachable ({type(e).__name__})"
     if r.status_code != 200:
-        msg = "The AI service is busy right now. Please try again in a minute."
-        if r.status_code in (401, 403):
-            msg = "Server AI credentials rejected. The owner needs to check the key."
-        return None, msg
+        return None, f"http {r.status_code}"
     try:
-        text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        return r.json()["candidates"][0]["content"]["parts"][0]["text"], "ok"
     except (KeyError, IndexError, ValueError):
-        return None, "The AI returned an unexpected response. Please try again."
-    data = _extract_json(text)
-    if not data or not data.get("sectors"):
-        return None, "Could not build a clean report this time. Please try again."
-    return data, "ok"
+        return None, "unexpected shape"
+
+
+def _lewat_groq(prompt: str) -> tuple[str | None, str]:
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_KEY}"},
+            json={"model": GROQ_MODEL, "temperature": 0.7,
+                  "max_tokens": GROQ_MAX_TOKENS,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=170)
+    except requests.RequestException as e:
+        return None, f"unreachable ({type(e).__name__})"
+    if r.status_code != 200:
+        return None, f"http {r.status_code}"
+    try:
+        return r.json()["choices"][0]["message"]["content"], "ok"
+    except (KeyError, IndexError, ValueError):
+        return None, "unexpected shape"
+
+
+def _generate(industry: str) -> tuple[dict | None, str]:
+    """Coba Gemini dulu, lalu Groq. Pembeli sudah membayar — satu
+    provider yang sedang penuh tidak boleh jadi urusan dia."""
+    if not GEMINI_KEY and not GROQ_KEY:
+        return None, "Server is missing its AI key. The owner needs to set GEMINI_API_KEY."
+
+    prompt = PROMPT.format(industry=industry)
+    jalur = []
+    if GEMINI_KEY:
+        jalur.append(("gemini", _lewat_gemini))
+    if GROQ_KEY:
+        jalur.append(("groq", _lewat_groq))
+
+    galat = []
+    for nama, fungsi in jalur:
+        text, sebab = fungsi(prompt)
+        if text:
+            data = _extract_json(text)
+            if data and data.get("sectors"):
+                return data, "ok"
+            galat.append(f"{nama}: bad json")
+            continue
+        galat.append(f"{nama}: {sebab}")
+        if "http 401" in sebab or "http 403" in sebab:
+            continue          # kunci ditolak — coba jalur berikutnya
+
+    print("AI gagal di semua jalur:", "; ".join(galat), flush=True)
+    if len(jalur) < 2:
+        return None, ("The AI service is busy right now. Please try again in "
+                      "a minute — your license key stays valid.")
+    return None, ("Both AI providers are busy right now. Please try again in "
+                  "a few minutes — your license key stays valid and this "
+                  "scan has not been used up.")
 
 
 # --------------------------------------------------------------- halaman
@@ -220,7 +274,9 @@ def sitemap():
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "ai": bool(GEMINI_KEY), "licensed": bool(GUMROAD_PRODUCT_ID)}
+    return {"ok": True, "ai": bool(GEMINI_KEY or GROQ_KEY),
+            "otak": [n for n, k in (("gemini", GEMINI_KEY), ("groq", GROQ_KEY)) if k],
+            "licensed": bool(GUMROAD_PRODUCT_ID)}
 
 
 # ------------------------------------------------------------------- API
