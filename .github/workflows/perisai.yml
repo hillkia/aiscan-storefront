@@ -1,0 +1,28 @@
+name: Perisai Ocklu
+on:
+  schedule:
+    - cron: "0 22 * * *"      # 05:00 WIB tiap hari
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: perisai-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  periksa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Periksa keamanan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/perisai/jaga.py
